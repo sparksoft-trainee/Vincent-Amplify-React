@@ -1,9 +1,9 @@
 import "./App.css";
 import { useEffect, useState } from "react";
 import { generateClient } from "aws-amplify/api";
-import { createPost } from "./graphql/mutations";
+import { createPost, deletePost } from "./graphql/mutations";
 import { listPosts } from "./graphql/queries";
-import { withAuthenticator, Heading } from "@aws-amplify/ui-react";
+import { withAuthenticator, Heading, Button } from "@aws-amplify/ui-react";
 import "@aws-amplify/ui-react/styles.css";
 import PropTypes from "prop-types";
 
@@ -23,7 +23,10 @@ const App = ({ user }) => {
       const postData = await client.graphql({
         query: listPosts,
       });
-      const posts = postData.data.listPosts.items;
+      let posts = postData.data.listPosts.items;
+      posts = posts.sort(
+        (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+      );
       setPosts(posts);
     } catch (err) {
       console.log("error fetching posts:", err);
@@ -38,16 +41,28 @@ const App = ({ user }) => {
     try {
       if (!formState.title || !formState.content) return;
       const post = { ...formState };
-      setPosts([...posts, post]);
-      setFormState(initialState);
-      await client.graphql({
+      const result = await client.graphql({
         query: createPost,
         variables: {
           input: post,
         },
       });
+      setPosts([result.data.createPost, ...posts]);
+      setFormState(initialState);
     } catch (err) {
       console.log("error creating post:", err);
+    }
+  }
+
+  async function handleDelete(postId) {
+    try {
+      await client.graphql({
+        query: deletePost,
+        variables: { input: { id: postId } },
+      });
+      fetchPosts(); // refresh the list after deleting
+    } catch (err) {
+      console.log("error deleting post:", err);
     }
   }
 
@@ -67,13 +82,14 @@ const App = ({ user }) => {
         value={formState.content}
         placeholder="Content"
       />
-      <button style={styles.button} onClick={addPost}>
+      <Button style={styles.button} onClick={addPost}>
         Create Post
-      </button>
-      {[...posts].reverse().map((post, index) => (
+      </Button>
+      {posts.map((post, index) => (
         <div key={post.id ? post.id : index} style={styles.todo}>
           <p style={styles.todoName}>{post.title}</p>
           <p style={styles.todoDescription}>{post.content}</p>
+          <Button onClick={() => handleDelete(post.id)}>Delete</Button>
         </div>
       ))}
     </div>
