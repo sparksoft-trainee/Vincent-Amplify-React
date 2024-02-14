@@ -3,13 +3,14 @@ import { useEffect, useState } from "react";
 import { generateClient } from "aws-amplify/api";
 import { createPost } from "./graphql/mutations";
 import { listPosts } from "./graphql/queries";
-import { withAuthenticator, Button, Heading } from "@aws-amplify/ui-react";
+import { withAuthenticator, Heading } from "@aws-amplify/ui-react";
 import "@aws-amplify/ui-react/styles.css";
+import PropTypes from "prop-types";
 
 const initialState = { title: "", content: "" };
 const client = generateClient();
 
-const App = ({ signOut, user }) => {
+const App = ({ user }) => {
   const [formState, setFormState] = useState(initialState);
   const [posts, setPosts] = useState([]);
 
@@ -53,7 +54,6 @@ const App = ({ signOut, user }) => {
   return (
     <div style={styles.container}>
       <Heading level={1}>Hello {user.username}</Heading>
-      <Button onClick={signOut}>Sign out</Button>
       <h2>Amplify Posts</h2>
       <input
         onChange={(event) => setInput("title", event.target.value)}
@@ -106,6 +106,12 @@ const styles = {
     fontSize: 18,
     padding: "12px 0px",
   },
+};
+
+App.propTypes = {
+  user: PropTypes.shape({
+    username: PropTypes.string,
+  }).isRequired,
 };
 
 export default withAuthenticator(App);
